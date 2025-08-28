@@ -1,8 +1,17 @@
 {
+  "name": "yeni-klasor-2",
+  "version": "1.0.0",
+  "description": "Yeni bir proje",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
   "dependencies": {
     "express": "^5.1.0",
     "socket.io": "^4.8.1"
-    "type": "module"
-  "start": "node server.js"
-}
+  },
+  "author": "",
+  "license": "ISC"
 }
