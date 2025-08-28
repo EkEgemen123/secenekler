@@ -194,5 +194,5 @@ function checkWinner(board) {
 }
 
 server.listen(PORT, () => {
-    console.log(`Kanka sunucu http://localhost:${PORT} adresinde çalışıyor, haberin olsun`);
+    console.log(`Kanka sunucu http://localhost:${PORT} adresinde çalışıyor, haberin olsun`);
 });
