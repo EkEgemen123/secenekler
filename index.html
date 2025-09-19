@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XOX Online | Lobi Sistemi</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+
+        :root {
+            --cerceve-boyutu: 120px;
+            --arka-plan: #121212;
+            --yuzey-rengi: #1e1e1e;
+            --metin-rengi: #e0e0e0;
+            --ana-renk: #03dac6;
+            --vurgu-rengi: #bb86fc;
+            --x-rengi: #ff5252;
+            --o-rengi: #448aff;
+            --grid-rengi: #333;
+            --golge: 0px 8px 25px rgba(0, 0, 0, 0.5);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: var(--arka-plan);
+            color: var(--metin-rengi);
+            font-family: 'Poppins', sans-serif;
+            overflow: hidden;
+            perspective: 1000px;
+        }
+
+        #arkaplan-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+
+        .ekran {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px;
+            background-color: var(--yuzey-rengi);
+            border-radius: 20px;
+            box-shadow: var(--golge);
+            width: 90%;
+            max-width: 500px;
+            text-align: center;
+            animation: fadeIn 0.5s ease-out;
+        }
+        .ekran.aktif { display: flex; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        
+        h1, h2 { font-weight: 700; }
+        h1 { font-size: 2.5em; margin-bottom: 20px; color: var(--ana-renk); }
+        h2 { font-size: 1.8em; margin-bottom: 30px; }
+
+        .btn {
+            padding: 15px 30px;
+            font-size: 1.2em;
+            font-weight: 600;
+            border-radius: 12px;
+            border: none;
+            background-color: var(--ana-renk);
+            color: #000;
+            cursor: pointer;
+            transition: transform 0.2s ease, background-color 0.2s ease;
+            margin: 10px;
+            width: 250px;
+        }
+        .btn:hover {
+            transform: translateY(-3px);
+            background-color: var(--vurgu-rengi);
+        }
+        .btn-ikincil {
+            background-color: #333;
+            color: var(--metin-rengi);
+        }
+        .btn-ikincil:hover { background-color: #444; }
+
+        /* Lobi Ekranı */
+        #lobi-kodu-giris {
+            padding: 15px;
+            font-size: 1.2em;
+            text-align: center;
+            border-radius: 8px;
+            border: 2px solid var(--grid-rengi);
+            background-color: var(--arka-plan);
+            color: var(--metin-rengi);
+            width: 250px;
+            margin: 10px 0;
+            text-transform: uppercase;
+        }
+        #lobi-kodu-gosterge {
+            font-size: 2em;
+            font-weight: bold;
+            letter-spacing: 5px;
+            color: var(--ana-renk);
+            background-color: var(--arka-plan);
+            padding: 15px 25px;
+            border-radius: 8px;
+            margin-top: 20px;
+            cursor: pointer;
+        }
+        #bekleme-mesaji { margin-top: 15px; font-size: 1.1em; }
+        
+        /* Oyun Alanı */
+        #oyun-alani-konteyner { position: relative; }
+        #oyun-alani {
+            display: grid;
+            grid-template-columns: repeat(3, var(--cerceve-boyutu));
+            grid-template-rows: repeat(3, var(--cerceve-boyutu));
+            gap: 10px;
+        }
+        .hucre {
+            width: var(--cerceve-boyutu);
+            height: var(--cerceve-boyutu);
+            background-color: #2a2a2a;
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: background-color .2s;
+        }
+        .hucre:hover { background-color: #3a3a3a; }
+        .hucre svg {
+            width: 70%;
+            height: 70%;
+        }
+        .hucre .x-path {
+            stroke: var(--x-rengi);
+            stroke-width: 12;
+            stroke-linecap: round;
+            stroke-dasharray: 1000;
+            stroke-dashoffset: 1000;
+            animation: cizim 0.8s ease-out forwards;
+        }
+        .hucre .o-path {
+            stroke: var(--o-rengi);
+            stroke-width: 12;
+            stroke-linecap: round;
+            fill: none;
+            stroke-dasharray: 1000;
+            stroke-dashoffset: 1000;
+            animation: cizim 0.8s ease-out forwards;
+        }
+
+        @keyframes cizim { to { stroke-dashoffset: 0; } }
+
+        #durum-gostergesi { font-size: 1.5em; margin-bottom: 20px; height: 50px; text-align: center; }
+        #kazanan-cizgisi { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+        #kazanan-cizgisi line {
+            stroke: var(--vurgu-rengi);
+            stroke-width: 8px;
+            stroke-linecap: round;
+            stroke-dasharray: 1000;
+            stroke-dashoffset: 1000;
+            animation: cizim 0.5s 0.5s ease-out forwards;
+        }
+        
+        /* Seçenekler ve Hakkımızda */
+        .ayar-satiri {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            max-width: 350px;
+            margin-bottom: 20px;
+        }
+        .ayar-satiri label { font-size: 1.1em; }
+        .ayar-satiri input[type="range"] {
+            width: 180px;
+            cursor: pointer;
+        }
+        #hakkimizda-icerik {
+            font-size: 1.2em;
+            line-height: 1.6;
+        }
+        #hakkimizda-icerik strong { color: var(--ana-renk); }
+
+        #bildirim {
+            position: fixed;
+            bottom: -100px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 15px 30px;
+            background-color: var(--x-rengi);
+            color: white;
+            border-radius: 12px;
+            box-shadow: var(--golge);
+            transition: bottom 0.5s ease-in-out;
+            font-weight: 600;
+            z-index: 100;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="arkaplan-canvas"></canvas>
+
+    <div id="ana-menu" class="ekran aktif">
+        <h1>XOX ONLINE</h1>
+        <button id="oyuna-basla-btn" class="btn">Oyuna Başla</button>
+        <a href="https://xox-hx5n.onrender.com/secenekler" style="text-decoration: none;">
+    <button id="secenekler-btn" class="btn">Seçenekler</button>
+</a>
+        <button id="hakkimizda-btn" class="btn">Hakkımızda</button>
+    </div>
+
+    <div id="lobi-ekrani" class="ekran">
+        <h2>Lobi</h2>
+        <button id="lobi-olustur-btn" class="btn">Lobi Oluştur</button>
+        <div id="lobi-kodu-gosterge-kapsayici" style="display: none;">
+            <p>Lobi Kodun (Tıkla Kopyala):</p>
+            <div id="lobi-kodu-gosterge" title="Kopyalamak için tıkla"></div>
+            <p id="bekleme-mesaji">Rakip bekleniyor...</p>
+        </div>
+        <hr style="width: 80%; border-color: #333; margin: 20px 0;">
+        <input type="text" id="lobi-kodu-giris" placeholder="Lobi Kodu Gir...">
+        <button id="lobiye-katil-btn" class="btn">Lobiye Katıl</button>
+        <button class="btn btn-ikincil" onclick="ekranGoster('ana-menu')">Geri</button>
+    </div>
+
+    <div id="oyun-ekrani" class="ekran">
+        <h2 id="durum-gostergesi">Oyun Başlıyor...</h2>
+        <div id="oyun-alani-konteyner">
+            <div id="oyun-alani">
+                <div class="hucre" data-index="0"></div><div class="hucre" data-index="1"></div><div class="hucre" data-index="2"></div>
+                <div class="hucre" data-index="3"></div><div class="hucre" data-index="4"></div><div class="hucre" data-index="5"></div>
+                <div class="hucre" data-index="6"></div><div class="hucre" data-index="7"></div><div class="hucre" data-index="8"></div>
+            </div>
+            <svg id="kazanan-cizgisi"></svg>
+        </div>
+        <button id="yeniden-baslat-btn" class="btn" style="margin-top: 30px;">Yeniden Başlat</button>
+    </div>
+    
+    <div id="secenekler-ekrani" class="ekran">
+        <h2>Seçenekler</h2>
+        <div class="ayar-satiri">
+            <label for="fps-secimi">FPS Limiti</label>
+            <input type="range" id="fps-secimi" min="30" max="144" value="60" step="1">
+            <span id="fps-deger">60</span>
+        </div>
+        <div class="ayar-satiri">
+            <label for="grafik-secimi">Grafik Kalitesi</label>
+            <select id="grafik-secimi" class="btn" style="width: 180px; text-align: center; color: var(--metin-rengi); background: #333;">
+                <option>Düşük</option>
+                <option selected>Orta</option>
+                <option>Yüksek</option>
+            </select>
+        </div>
+        <div class="ayar-satiri">
+            <label for="ses-seviyesi">Ses Seviyesi</label>
+            <input type="range" id="ses-seviyesi" min="0" max="100" value="75" step="1">
+            <span id="ses-deger">75%</span>
+        </div>
+        <button class="btn btn-ikincil" onclick="ekranGoster('ana-menu')">Geri</button>
+    </div>
+    
+    <div id="hakkimizda-ekrani" class="ekran">
+        <h2>Hakkımızda</h2>
+        <div id="hakkimizda-icerik">
+            <p><strong>Oyunu Yapan:</strong> Egemen Kaya</p>
+            <p><strong>İletişim:</strong> egemenkaya4498@gmail.com</p>
+        </div>
+        <button class="btn btn-ikincil" style="margin-top: 30px;" onclick="ekranGoster('ana-menu')">Geri</button>
+    </div>
+
+    <div id="bildirim"></div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        // Arka plan parçacık efekti
+        const canvas = document.getElementById('arkaplan-canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        let particles = [];
+
+        class Particle {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 2 + 1;
+                this.speedX = Math.random() * 1 - 0.5;
+                this.speedY = Math.random() * 1 - 0.5;
+                this.color = 'rgba(3, 218, 198, 0.5)';
+            }
+            update() {
+                if (this.x > canvas.width || this.x < 0) this.speedX *= -1;
+                if (this.y > canvas.height || this.y < 0) this.speedY *= -1;
+                this.x += this.speedX;
+                this.y += this.speedY;
+            }
+            draw() {
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function initParticles() {
+            for (let i = 0; i < 50; i++) {
+                particles.push(new Particle());
+            }
+        }
+        function animateParticles() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            for (let i = 0; i < particles.length; i++) {
+                particles[i].update();
+                particles[i].draw();
+            }
+            requestAnimationFrame(animateParticles);
+        }
+        initParticles();
+        animateParticles();
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            particles = [];
+            initParticles();
+        });
+
+
+        // Oyun Mantığı
+        document.addEventListener('DOMContentLoaded', () => {
+            const socket = io();
+
+            // Ekranlar
+            const ekranlar = {
+                anaMenu: document.getElementById('ana-menu'),
+                lobi: document.getElementById('lobi-ekrani'),
+                oyun: document.getElementById('oyun-ekrani'),
+                secenekler: document.getElementById('secenekler-ekrani'),
+                hakkimizda: document.getElementById('hakkimizda-ekrani'),
+            };
+
+            // Butonlar
+            document.getElementById('oyuna-basla-btn').addEventListener('click', () => ekranGoster('lobi'));
+            document.getElementById('secenekler-btn').addEventListener('click', () => ekranGoster('secenekler'));
+            document.getElementById('hakkimizda-btn').addEventListener('click', () => ekranGoster('hakkimizda'));
+            document.getElementById('lobi-olustur-btn').addEventListener('click', () => socket.emit('createLobby'));
+            document.getElementById('lobiye-katil-btn').addEventListener('click', () => {
+                const kod = document.getElementById('lobi-kodu-giris').value.toUpperCase();
+                if (kod) socket.emit('joinLobby', kod);
+            });
+            document.getElementById('yeniden-baslat-btn').addEventListener('click', () => socket.emit('restartGame', mevcutLobiKodu));
+
+            // Lobi Elemanları
+            const lobiKoduGosterge = document.getElementById('lobi-kodu-gosterge');
+            const lobiKoduGostergeKapsayici = document.getElementById('lobi-kodu-gosterge-kapsayici');
+            lobiKoduGosterge.addEventListener('click', () => navigator.clipboard.writeText(lobiKoduGosterge.textContent).then(() => bildirimGoster('Kod kopyalandı!', 'basari')));
+
+            // Oyun Elemanları
+            const durumGostergesi = document.getElementById('durum-gostergesi');
+            const hucreler = document.querySelectorAll('.hucre');
+            const kazananCizgisiSVG = document.getElementById('kazanan-cizgisi');
+
+            let mevcutLobiKodu = null;
+            let benimSembolum = null;
+
+            window.ekranGoster = (ekranAdi) => {
+                Object.values(ekranlar).forEach(ekran => ekran.classList.remove('aktif'));
+                ekranlar[ekranAdi].classList.add('aktif');
+            };
+
+            // Socket.IO Olayları
+            socket.on('lobbyCreated', (lobbyCode) => {
+                mevcutLobiKodu = lobbyCode;
+                lobiKoduGosterge.textContent = lobbyCode;
+                lobiKoduGostergeKapsayici.style.display = 'block';
+                document.getElementById('lobi-olustur-btn').style.display = 'none';
+            });
+
+            socket.on('gameStart', (data) => {
+                mevcutLobiKodu = data.lobbyCode;
+                benimSembolum = data.players[socket.id];
+                ekranGoster('oyun');
+                durumGuncelle(data);
+            });
+
+            socket.on('updateState', (data) => {
+                durumGuncelle(data);
+            });
+
+            socket.on('error', (mesaj) => {
+                bildirimGoster(mesaj);
+            });
+            
+            socket.on('opponentLeft', () => {
+                bildirimGoster('Rakibin oyundan ayrıldı!');
+                setTimeout(() => {
+                    // Oyunu sıfırla ve lobi ekranına dön
+                    lobiKoduGostergeKapsayici.style.display = 'none';
+                    document.getElementById('lobi-olustur-btn').style.display = 'block';
+                    ekranGoster('lobi');
+                }, 3000);
+            });
+            
+            socket.on('restart', () => {
+                hucreler.forEach(hucre => hucre.innerHTML = '');
+                kazananCizgisiSVG.innerHTML = '';
+            });
+
+            // Yardımcı Fonksiyonlar
+            function durumGuncelle(data) {
+                // Tahtayı çiz
+                data.board.forEach((sembol, index) => {
+                    const hucre = hucreler[index];
+                    if (sembol && hucre.innerHTML === "") { // Sadece boşsa animasyonla çiz
+                        if (sembol === 'X') {
+                            hucre.innerHTML = `<svg viewBox="0 0 100 100"><path class="x-path" d="M 10 10 L 90 90 M 90 10 L 10 90"></path></svg>`;
+                        } else {
+                            hucre.innerHTML = `<svg viewBox="0 0 100 100"><circle class="o-path" cx="50" cy="50" r="40"></circle></svg>`;
+                        }
+                    }
+                });
+
+                // Durum mesajını güncelle
+                if (!data.isActive) {
+                    if (data.winner) {
+                        durumGostergesi.textContent = `${data.winner} kazandı!`;
+                        kazananCizgisiCiz(data.winningLine);
+                    } else {
+                        durumGostergesi.textContent = "Oyun berabere!";
+                    }
+                } else {
+                    durumGostergesi.textContent = data.currentPlayer === benimSembolum ? "Sıra Sende!" : "Rakip bekleniyor...";
+                }
+            }
+
+            hucreler.forEach((hucre, index) => {
+                hucre.addEventListener('click', () => {
+                    socket.emit('makeMove', { lobbyCode: mevcutLobiKodu, index: index });
+                });
+            });
+
+            function kazananCizgisiCiz(kazananKombinasyon) {
+                if (!kazananKombinasyon) return;
+                const baslangicHucre = document.querySelector(`.hucre[data-index='${kazananKombinasyon[0]}']`);
+                const bitisHucre = document.querySelector(`.hucre[data-index='${kazananKombinasyon[2]}']`);
+                const x1 = baslangicHucre.offsetLeft + baslangicHucre.offsetWidth / 2;
+                const y1 = baslangicHucre.offsetTop + baslangicHucre.offsetHeight / 2;
+                const x2 = bitisHucre.offsetLeft + bitisHucre.offsetWidth / 2;
+                const y2 = bitisHucre.offsetTop + bitisHucre.offsetHeight / 2;
+                const cizgi = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                cizgi.setAttribute('x1', x1); cizgi.setAttribute('y1', y1);
+                cizgi.setAttribute('x2', x2); cizgi.setAttribute('y2', y2);
+                kazananCizgisiSVG.innerHTML = ''; // Eski çizgiyi temizle
+                kazananCizgisiSVG.appendChild(cizgi);
+            }
+
+            const bildirimElementi = document.getElementById('bildirim');
+            function bildirimGoster(mesaj, tip = 'hata') {
+                bildirimElementi.textContent = mesaj;
+                bildirimElementi.style.backgroundColor = tip === 'hata' ? 'var(--x-rengi)' : 'var(--ana-renk)';
+                bildirimElementi.style.bottom = '20px';
+                setTimeout(() => {
+                    bildirimElementi.style.bottom = '-100px';
+                }, 3000);
+            }
+            
+            // Seçenekler Ekranı Mantığı (Görsel)
+            const fpsSecimi = document.getElementById('fps-secimi');
+            const fpsDeger = document.getElementById('fps-deger');
+            fpsSecimi.addEventListener('input', (e) => fpsDeger.textContent = e.target.value);
+            
+            const sesSeviyesi = document.getElementById('ses-seviyesi');
+            const sesDeger = document.getElementById('ses-deger');
+            sesSeviyesi.addEventListener('input', (e) => sesDeger.textContent = `${e.target.value}%`);
+        });
+
+    </script>
+</body>
+</html>
